@@ -27,6 +27,7 @@
     remote_src: yes
     dest: /var/www/html
   when:
+    - not virtualbox_php_version in [ 'master', 'develop' ]
     - virtualbox_php_version is version('5.0', '<')
     - not phpvirtualbox_file.stat.exists
 
@@ -36,7 +37,7 @@
     remote_src: yes
     dest: /var/www/html/
   when:
-    - virtualbox_php_version is version('5.0', '>=')
+    - virtualbox_php_version in [ 'master', 'develop' ] or virtualbox_php_version is version('5.0', '>=')
     - not phpvirtualbox_file.stat.exists
 
 # Unpacking will result in a folder like phpvirtualbox-5.0.5/
