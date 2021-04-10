@@ -11,3 +11,8 @@ virtualbox_repo_base_url: "https://download.virtualbox.org/virtualbox"
 
 virtualbox_user: vbox
 virtualbox_user_pw: changeme
+
+virtualbox_install: yes
+virtualbox_php_install: yes
+
+virtualbox_debian_release: "{{ ansible_distribution_release }}"

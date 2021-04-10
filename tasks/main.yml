@@ -8,4 +8,6 @@
    - "default.yml"
 
 - import_tasks: virtualbox.yml
+  when: virtualbox_install|bool
 - import_tasks: phpvirtualbox.yml
+  when: virtualbox_php_install|bool

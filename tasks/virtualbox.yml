@@ -20,7 +20,7 @@
 
 - name: Add VirtualBox repo
   apt_repository:
-    repo: 'deb {{ virtualbox_repo_base_url }}/debian {{ ansible_distribution_release }} contrib'
+    repo: 'deb {{ virtualbox_repo_base_url }}/debian {{ virtualbox_debian_release }} contrib'
     state: present
     update_cache: yes
 
