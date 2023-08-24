@@ -20,7 +20,7 @@
 
 - name: Add VirtualBox repo
   apt_repository:
-    repo: 'deb {{ virtualbox_repo_base_url }}/debian {{ virtualbox_debian_release }} contrib'
+    repo: 'deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] {{ virtualbox_repo_base_url }}/debian {{ virtualbox_debian_release }} contrib'
     state: present
     update_cache: yes
 
