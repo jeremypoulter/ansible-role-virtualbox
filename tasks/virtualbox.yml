@@ -88,20 +88,116 @@
         else virtualbox_extpack_version
       }}
 
+- name: Set extension pack naming for VirtualBox major version
+  ansible.builtin.set_fact:
+    virtualbox_extpack_filename_prefix: >-
+      {{
+        'Oracle_VirtualBox_Extension_Pack'
+        if (virtualbox_extpack_target_version.split('.')[0] | int) >= 7
+        else 'Oracle_VM_VirtualBox_Extension_Pack'
+      }}
+    virtualbox_expected_extpack_name: >-
+      {{
+        'Oracle VirtualBox Extension Pack'
+        if (virtualbox_extpack_target_version.split('.')[0] | int) >= 7
+        else 'Oracle VM VirtualBox Extension Pack'
+      }}
+
 - name: Read installed extension packs
   ansible.builtin.command: VBoxManage list extpacks
   register: virtualbox_extpack_list
   changed_when: false
 
+- name: Parse installed extension packs
+  ansible.builtin.set_fact:
+    virtualbox_extpacks_parsed: >-
+      {%- set packs = [] -%}
+      {%- for p in (virtualbox_extpack_list.stdout
+        | regex_findall('(?ms)^Pack no\\. \\d+:[ \\t]*(.*?)\\nVersion:[ \\t]*([^\\n]*)\\n.*?Usable:[ \\t]*(true|false)')) -%}
+      {%- set _ = packs.append({'name': p[0] | trim, 'version': p[1] | trim, 'usable': (p[2] | trim | lower) == 'true'}) -%}
+      {%- endfor -%}
+      {{ packs }}
+
+- name: Remove unusable or mismatched extension packs
+  ansible.builtin.command:
+    argv:
+      - VBoxManage
+      - extpack
+      - uninstall
+      - "{{ item.name }}"
+  register: virtualbox_extpack_uninstall
+  changed_when: >-
+    'successfully uninstalled' in (virtualbox_extpack_uninstall.stdout | lower)
+    or 'successfully uninstalled' in (virtualbox_extpack_uninstall.stderr | lower)
+  failed_when:
+    - virtualbox_extpack_uninstall.rc != 0
+    - "'is not installed' not in ((virtualbox_extpack_uninstall.stdout | lower) ~ ' ' ~ (virtualbox_extpack_uninstall.stderr | lower))"
+  loop: "{{ virtualbox_extpacks_parsed }}"
+  when: not (
+          item.name == virtualbox_expected_extpack_name
+          and item.version == virtualbox_extpack_target_version
+          and item.usable
+        )
+
+- name: Find extension pack directories on disk
+  ansible.builtin.find:
+    paths: /usr/lib/virtualbox/ExtensionPacks
+    file_type: directory
+    recurse: false
+  register: virtualbox_extpack_dirs
+
+- name: Remove unexpected extension pack directories on disk
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ virtualbox_extpack_dirs.files }}"
+  when: (item.path | basename) != virtualbox_extpack_filename_prefix
+  register: virtualbox_extpack_dir_removal
+
+# VBoxSVC caches the extpack list at startup, so a running daemon keeps serving
+# stale entries after the directories are removed. Terminate every VBoxSVC and
+# clear stale IPC sockets so the next VBoxManage call rebuilds the cache.
+- name: Refresh VBoxSVC daemons after removing stale extension packs  # noqa: no-handler
+  ansible.builtin.shell: |
+    set -e
+    pkill -TERM VBoxSVC || true
+    sleep 2
+    pkill -KILL VBoxSVC || true
+    rm -rf /tmp/.vbox-*-ipc
+  changed_when: true
+  when: virtualbox_extpack_dir_removal is changed
+
+- name: Read extension packs after cleanup
+  ansible.builtin.command: VBoxManage list extpacks
+  register: virtualbox_extpack_list_after_cleanup
+  changed_when: false
+
 - name: Determine installed extension pack version
   ansible.builtin.set_fact:
-    virtualbox_extpack_installed_version: "{{ virtualbox_extpack_list.stdout | regex_findall('Version:\\s*([0-9.]+)') | first | default('') }}"
+    virtualbox_extpack_installed_version: >-
+      {{
+        (
+          virtualbox_extpack_list_after_cleanup.stdout
+          | regex_findall(
+              '(?ms)^Pack no\\. \\d+:[ \\t]*'
+              ~ (virtualbox_expected_extpack_name | regex_escape)
+              ~ '\\nVersion:[ \\t]*([0-9.]+)\\n.*?Usable:[ \\t]*true'
+            )
+          | first
+          | default('')
+        )
+      }}
 
 - name: Download VirtualBox extension pack
   ansible.builtin.get_url:
     # VirtualBox 7.x dropped the "VM_" infix (rebranded to "Oracle VirtualBox").
-    url: "{{ virtualbox_repo_base_url }}/{{ virtualbox_extpack_target_version }}/Oracle_VirtualBox_Extension_Pack-\
-{{ virtualbox_extpack_target_version }}.vbox-extpack"
+    url: >-
+      {{ '%s/%s/%s-%s.vbox-extpack' | format(
+        virtualbox_repo_base_url | trim,
+        virtualbox_extpack_target_version | trim,
+        virtualbox_extpack_filename_prefix | trim,
+        virtualbox_extpack_target_version | trim
+      ) }}
     dest: /tmp/
     force: true
     mode: "0644"
@@ -115,7 +211,13 @@
   when: virtualbox_extpack_installed_version != virtualbox_extpack_target_version
 
 - name: Install VirtualBox extension pack
-  ansible.builtin.command: "VBoxManage extpack install --replace {{ virtualbox_download_result.dest }}"
+  ansible.builtin.command:
+    argv:
+      - VBoxManage
+      - extpack
+      - install
+      - --replace
+      - "{{ virtualbox_download_result.dest }}"
   args:
     stdin: "y\n"
   register: virtualbox_extpack_install
