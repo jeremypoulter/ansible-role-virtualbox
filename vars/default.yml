@@ -1,8 +1,10 @@
 ---
 
-php_packages:
+virtualbox_php_packages:
   - apache2
-  - php5
-  - php5-common
+  - php
+  - php-common
   - php-soap
-  - php5-gd
+  - php-gd
+  - libapache2-mod-php
+  - php-xml

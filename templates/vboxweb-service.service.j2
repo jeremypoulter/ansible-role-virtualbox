@@ -1,0 +1,14 @@
+[Unit]
+Description=VirtualBox Web Service API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/virtualbox
+User={{ virtualbox_user }}
+ExecStart=/usr/bin/vboxwebsrv
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

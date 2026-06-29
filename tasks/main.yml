@@ -1,13 +1,23 @@
 ---
 # tasks file for stefanhorning.virtualbox
 
-- include_vars: "{{ item }}"
+- name: Load distribution specific defaults
+  ansible.builtin.include_vars: "{{ item }}"
   with_first_found:
    - "{{ ansible_distribution_release }}.yml"
    - "{{ ansible_os_family }}.yml"
    - "default.yml"
 
-- import_tasks: virtualbox.yml
-  when: virtualbox_install|bool
-- import_tasks: phpvirtualbox.yml
-  when: virtualbox_php_install|bool
+- name: Configure VirtualBox
+  ansible.builtin.import_tasks: virtualbox.yml
+  when: virtualbox_install | bool
+
+- name: Configure phpVirtualBox
+  ansible.builtin.import_tasks: phpvirtualbox.yml
+  when: virtualbox_php_install | bool
+
+- name: Uninstall phpVirtualBox
+  ansible.builtin.import_tasks: phpvirtualbox_uninstall.yml
+  when:
+   - not (virtualbox_php_install | bool)
+   - virtualbox_php_uninstall | bool

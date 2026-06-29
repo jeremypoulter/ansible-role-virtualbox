@@ -1,11 +1,12 @@
 ---
 galaxy_info:
   role_name: virtualbox
+  namespace: stefanhorning
   author: Stefan Horning <stefan@hornings.de>
   description: Installs VirtualBox and phpVirtualBox on a headless Ubuntu server.
   company: Mediapeers
   license: BSD
-  min_ansible_version: 2.7
+  min_ansible_version: "2.7"
   platforms:
     - name: Ubuntu
       versions:

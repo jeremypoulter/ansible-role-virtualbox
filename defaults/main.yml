@@ -1,10 +1,11 @@
 ---
 # defaults file for stefanhorning.virtualbox
 
-virtualbox_version: 5.2 # could also be 5.0 or 4.3 etc.
-# Sub versions for Vbox extension packs and phpVirtualbox:
-virtualbox_extpack_version: "{{ virtualbox_version}}.12"
-virtualbox_php_version: "{{ virtualbox_version}}-0"
+virtualbox_version: latest
+# Set to "auto" to install extpack matching the installed VirtualBox version.
+virtualbox_extpack_version: auto
+# Use "master"/"develop" or a release tag (for example "7.0-3").
+virtualbox_php_version: master
 
 # Should not need changing:
 virtualbox_repo_base_url: "https://download.virtualbox.org/virtualbox"
@@ -12,7 +13,10 @@ virtualbox_repo_base_url: "https://download.virtualbox.org/virtualbox"
 virtualbox_user: vbox
 virtualbox_user_pw: changeme
 
-virtualbox_install: yes
-virtualbox_php_install: yes
+virtualbox_install: true
+virtualbox_php_install: true
+# Set to true to actively remove a previous phpVirtualBox install (web files and
+# the vboxweb-service unit). Has no effect while virtualbox_php_install is true.
+virtualbox_php_uninstall: false
 
-virtualbox_debian_release: "{{ ansible_distribution_release }}"
+virtualbox_debian_release: "{{ ansible_facts['distribution_release'] }}"

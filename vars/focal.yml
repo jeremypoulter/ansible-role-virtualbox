@@ -1,6 +1,6 @@
 ---
 
-php_packages:
+virtualbox_php_packages:
   - apache2
   - php7.4
   - php7.4-common

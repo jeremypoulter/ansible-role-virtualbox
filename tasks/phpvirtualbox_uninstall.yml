@@ -1,0 +1,28 @@
+# Remove a previous phpVirtualBox install and its web service.
+
+- name: Stop and disable vboxweb-service
+  ansible.builtin.systemd_service:
+    name: vboxweb-service
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Remove vboxweb-service systemd unit
+  ansible.builtin.file:
+    path: /etc/systemd/system/vboxweb-service.service
+    state: absent
+
+- name: Reload systemd after removing vboxweb-service unit
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Remove phpVirtualBox web root
+  ansible.builtin.file:
+    path: /var/www/html
+    state: absent
+
+- name: Recreate empty web root
+  ansible.builtin.file:
+    path: /var/www/html
+    state: directory
+    mode: "0755"

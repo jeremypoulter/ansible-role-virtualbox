@@ -1,7 +1,8 @@
 ---
-- hosts: localhost
+- name: Test virtualbox role
+  hosts: localhost
   become: true
   vars:
     virtualbox_user_pw: blubb
   roles:
-    - ansible-role-virtualbox
+    - virtualbox
